@@ -1,0 +1,9 @@
+.DS_Store
+.env
+.env*
+Dockerfile
+tmp*
+lobster-pot
+testdata
+*_test.go
+

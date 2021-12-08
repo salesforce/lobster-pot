@@ -1,0 +1,36 @@
+{
+    "keys": [
+        {
+            "id":"AWS_ACCESS_KEY",
+            "value":"AKIAIOSFODNN7EXAMPLE"
+        },
+        {
+            "id":"AWS_SECRET_KEY",
+            "value":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        },
+        {
+            "id":"AWS_SESSION_TOKEN",
+            "value":"AQoEXAMPLEH4aoAH0gNCAPyJxz4BlCFFxWNE1OPTgk5TthT+FvwqnKwRcOIfrRh3c/LTo6UDdyJwOOvEVPvLXCrrrUtdnniCEXAMPLE/IvU1dYUg2RVAJBanLiHb4IgRmpRV3zrkuWJOgQs8IZZaIv2BXIa2R4OlgkBN9bkUDNCJiB/AXlzBBko7b15fjrBs2+cTQtpZ3CYWFXG8C5zqx37wnOE49mRl/+OtkIKGO7fAE"
+        },
+        {
+            "id":"GCP_Private_Key",
+            "value":"[PRIVATE-KEY]"
+        },
+        {
+            "id":"GCP_Key_ID",
+            "value":"[KEY-ID]"
+        },
+        {
+            "id":"Heroku",
+            "value":"HEROKU-"
+        },
+        {
+            "id":"base64",
+            "value":"RVhBTVBMRQ=="
+        },
+        {
+            "id":"exampleKey",
+            "value":"EXAMPLE"
+        }
+    ]
+}

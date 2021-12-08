@@ -1,0 +1,3 @@
+docs/** linguist-documentation
+README.md linguist-documentation
+vendor/** linguist-vendored
