@@ -51,11 +51,11 @@ func buildGithubOrgsConfigs() (apps GithubApps, err error) {
 // buildGHAppConfigFromEnviron builds a GithubAppConfig from the environment variables
 // for multiple orgs, the variables are in the form with GITHUB_<VARNAME>_<NUMERICAL_ID>
 func buildGHAppConfigFromEnviron(index string) (ghAppConfig *GithubApp, err error) {
-	log.Trace()
 	l := log.WithFields(log.Fields{
 		"function": "buildGHAppConfigFromEnviron",
 		"index":    index,
 	})
+	l.Trace()
 
 	orgName := os.Getenv(buildEnvVarName(index, "GITHUB_ORG"))
 	if orgName == "" {
