@@ -3,7 +3,7 @@ package scanner
 import (
 	"fmt"
 
-	"github.com/heroku/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/config"
 	log "github.com/sirupsen/logrus"
 )
 

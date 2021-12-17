@@ -1,7 +1,7 @@
 package scanner
 
 import (
-	"github.com/heroku/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/config"
 )
 
 // ScanFolder takes a path to a folder to scan, calls the scanning binary to do the scan

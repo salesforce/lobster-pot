@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/heroku/lobster-pot/config"
-	"github.com/heroku/lobster-pot/handlers"
+	"github.com/salesforce/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/handlers"
 
 	_ "github.com/joho/godotenv/autoload"
 	log "github.com/sirupsen/logrus"

@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"github.com/heroku/lobster-pot/db"
+	"github.com/salesforce/lobster-pot/db"
 	log "github.com/sirupsen/logrus"
 
 	_ "github.com/joho/godotenv/autoload"
