@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,18 +48,19 @@ const (
 	headerRateReset = "RateLimit-Reset"
 )
 
-// authType represents an authentication type within GitLab.
+// AuthType represents an authentication type within GitLab.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/
-type authType int
+type AuthType int
 
 // List of available authentication types.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/
 const (
-	basicAuth authType = iota
-	oAuthToken
-	privateToken
+	BasicAuth AuthType = iota
+	JobToken
+	OAuthToken
+	PrivateToken
 )
 
 // A Client manages communication with the GitLab API.
@@ -83,7 +84,7 @@ type Client struct {
 	limiter RateLimiter
 
 	// Token type used to make authenticated API calls.
-	authType authType
+	authType AuthType
 
 	// Username and password used for basix authentication.
 	username, password string
@@ -100,6 +101,8 @@ type Client struct {
 	// Services used for talking to different parts of the GitLab API.
 	AccessRequests        *AccessRequestsService
 	Applications          *ApplicationsService
+	AuditEvents           *AuditEventsService
+	Avatar                *AvatarRequestsService
 	AwardEmoji            *AwardEmojiService
 	Boards                *IssueBoardsService
 	Branches              *BranchesService
@@ -116,19 +119,25 @@ type Client struct {
 	EpicIssues            *EpicIssuesService
 	Epics                 *EpicsService
 	Events                *EventsService
+	ExternalStatusChecks  *ExternalStatusChecksService
 	Features              *FeaturesService
 	FreezePeriods         *FreezePeriodsService
+	GenericPackages       *GenericPackagesService
+	GeoNodes              *GeoNodesService
 	GitIgnoreTemplates    *GitIgnoreTemplatesService
 	GroupBadges           *GroupBadgesService
 	GroupCluster          *GroupClustersService
+	GroupImportExport     *GroupImportExportService
 	GroupIssueBoards      *GroupIssueBoardsService
 	GroupLabels           *GroupLabelsService
 	GroupMembers          *GroupMembersService
 	GroupMilestones       *GroupMilestonesService
 	GroupVariables        *GroupVariablesService
+	GroupWikis            *GroupWikisService
 	Groups                *GroupsService
 	InstanceCluster       *InstanceClustersService
 	InstanceVariables     *InstanceVariablesService
+	Invites               *InvitesService
 	IssueLinks            *IssueLinksService
 	Issues                *IssuesService
 	IssuesStatistics      *IssuesStatisticsService
@@ -137,17 +146,22 @@ type Client struct {
 	Labels                *LabelsService
 	License               *LicenseService
 	LicenseTemplates      *LicenseTemplatesService
+	ManagedLicenses       *ManagedLicensesService
 	MergeRequestApprovals *MergeRequestApprovalsService
 	MergeRequests         *MergeRequestsService
 	Milestones            *MilestonesService
 	Namespaces            *NamespacesService
 	Notes                 *NotesService
 	NotificationSettings  *NotificationSettingsService
+	Packages              *PackagesService
+	Pages                 *PagesService
 	PagesDomains          *PagesDomainsService
 	PipelineSchedules     *PipelineSchedulesService
 	PipelineTriggers      *PipelineTriggersService
 	Pipelines             *PipelinesService
+	PlanLimits            *PlanLimitsService
 	ProjectBadges         *ProjectBadgesService
+	ProjectAccessTokens   *ProjectAccessTokensService
 	ProjectCluster        *ProjectClustersService
 	ProjectImportExport   *ProjectImportExportService
 	ProjectMembers        *ProjectMembersService
@@ -156,12 +170,14 @@ type Client struct {
 	ProjectVariables      *ProjectVariablesService
 	Projects              *ProjectsService
 	ProtectedBranches     *ProtectedBranchesService
+	ProtectedEnvironments *ProtectedEnvironmentsService
 	ProtectedTags         *ProtectedTagsService
 	ReleaseLinks          *ReleaseLinksService
 	Releases              *ReleasesService
 	Repositories          *RepositoriesService
 	RepositoryFiles       *RepositoryFilesService
 	ResourceLabelEvents   *ResourceLabelEventsService
+	ResourceStateEvents   *ResourceStateEventsService
 	Runners               *RunnersService
 	Search                *SearchService
 	Services              *ServicesService
@@ -199,7 +215,7 @@ func NewClient(token string, options ...ClientOptionFunc) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.authType = privateToken
+	client.authType = PrivateToken
 	client.token = token
 	return client, nil
 }
@@ -212,10 +228,22 @@ func NewBasicAuthClient(username, password string, options ...ClientOptionFunc) 
 		return nil, err
 	}
 
-	client.authType = basicAuth
+	client.authType = BasicAuth
 	client.username = username
 	client.password = password
 
+	return client, nil
+}
+
+// NewJobClient returns a new GitLab API client. To use API methods which require
+// authentication, provide a valid job token.
+func NewJobClient(token string, options ...ClientOptionFunc) (*Client, error) {
+	client, err := newClient(options...)
+	if err != nil {
+		return nil, err
+	}
+	client.authType = JobToken
+	client.token = token
 	return client, nil
 }
 
@@ -226,7 +254,7 @@ func NewOAuthClient(token string, options ...ClientOptionFunc) (*Client, error) 
 	if err != nil {
 		return nil, err
 	}
-	client.authType = oAuthToken
+	client.authType = OAuthToken
 	client.token = token
 	return client, nil
 }
@@ -264,6 +292,8 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	// Create all the public services.
 	c.AccessRequests = &AccessRequestsService{client: c}
 	c.Applications = &ApplicationsService{client: c}
+	c.AuditEvents = &AuditEventsService{client: c}
+	c.Avatar = &AvatarRequestsService{client: c}
 	c.AwardEmoji = &AwardEmojiService{client: c}
 	c.Boards = &IssueBoardsService{client: c}
 	c.Branches = &BranchesService{client: c}
@@ -280,19 +310,25 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.EpicIssues = &EpicIssuesService{client: c}
 	c.Epics = &EpicsService{client: c}
 	c.Events = &EventsService{client: c}
+	c.ExternalStatusChecks = &ExternalStatusChecksService{client: c}
 	c.Features = &FeaturesService{client: c}
 	c.FreezePeriods = &FreezePeriodsService{client: c}
+	c.GenericPackages = &GenericPackagesService{client: c}
+	c.GeoNodes = &GeoNodesService{client: c}
 	c.GitIgnoreTemplates = &GitIgnoreTemplatesService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
+	c.GroupImportExport = &GroupImportExportService{client: c}
 	c.GroupIssueBoards = &GroupIssueBoardsService{client: c}
 	c.GroupLabels = &GroupLabelsService{client: c}
 	c.GroupMembers = &GroupMembersService{client: c}
 	c.GroupMilestones = &GroupMilestonesService{client: c}
 	c.GroupVariables = &GroupVariablesService{client: c}
+	c.GroupWikis = &GroupWikisService{client: c}
 	c.Groups = &GroupsService{client: c}
 	c.InstanceCluster = &InstanceClustersService{client: c}
 	c.InstanceVariables = &InstanceVariablesService{client: c}
+	c.Invites = &InvitesService{client: c}
 	c.IssueLinks = &IssueLinksService{client: c}
 	c.Issues = &IssuesService{client: c, timeStats: timeStats}
 	c.IssuesStatistics = &IssuesStatisticsService{client: c}
@@ -301,17 +337,22 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Labels = &LabelsService{client: c}
 	c.License = &LicenseService{client: c}
 	c.LicenseTemplates = &LicenseTemplatesService{client: c}
+	c.ManagedLicenses = &ManagedLicensesService{client: c}
 	c.MergeRequestApprovals = &MergeRequestApprovalsService{client: c}
 	c.MergeRequests = &MergeRequestsService{client: c, timeStats: timeStats}
 	c.Milestones = &MilestonesService{client: c}
 	c.Namespaces = &NamespacesService{client: c}
 	c.Notes = &NotesService{client: c}
 	c.NotificationSettings = &NotificationSettingsService{client: c}
+	c.Packages = &PackagesService{client: c}
+	c.Pages = &PagesService{client: c}
 	c.PagesDomains = &PagesDomainsService{client: c}
 	c.PipelineSchedules = &PipelineSchedulesService{client: c}
 	c.PipelineTriggers = &PipelineTriggersService{client: c}
 	c.Pipelines = &PipelinesService{client: c}
+	c.PlanLimits = &PlanLimitsService{client: c}
 	c.ProjectBadges = &ProjectBadgesService{client: c}
+	c.ProjectAccessTokens = &ProjectAccessTokensService{client: c}
 	c.ProjectCluster = &ProjectClustersService{client: c}
 	c.ProjectImportExport = &ProjectImportExportService{client: c}
 	c.ProjectMembers = &ProjectMembersService{client: c}
@@ -320,12 +361,14 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.ProjectVariables = &ProjectVariablesService{client: c}
 	c.Projects = &ProjectsService{client: c}
 	c.ProtectedBranches = &ProtectedBranchesService{client: c}
+	c.ProtectedEnvironments = &ProtectedEnvironmentsService{client: c}
 	c.ProtectedTags = &ProtectedTagsService{client: c}
 	c.ReleaseLinks = &ReleaseLinksService{client: c}
 	c.Releases = &ReleasesService{client: c}
 	c.Repositories = &RepositoriesService{client: c}
 	c.RepositoryFiles = &RepositoryFilesService{client: c}
 	c.ResourceLabelEvents = &ResourceLabelEventsService{client: c}
+	c.ResourceStateEvents = &ResourceStateEventsService{client: c}
 	c.Runners = &RunnersService{client: c}
 	c.Search = &SearchService{client: c}
 	c.Services = &ServicesService{client: c}
@@ -402,7 +445,7 @@ func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Respons
 }
 
 // configureLimiter configures the rate limiter.
-func (c *Client) configureLimiter() error {
+func (c *Client) configureLimiter(ctx context.Context) error {
 	// Set default values for when rate limiting is disabled.
 	limit := rate.Inf
 	burst := 0
@@ -413,7 +456,7 @@ func (c *Client) configureLimiter() error {
 	}()
 
 	// Create a new request.
-	req, err := http.NewRequest("GET", c.baseURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -497,7 +540,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}, options []Requ
 
 	var body interface{}
 	switch {
-	case method == "POST" || method == "PUT":
+	case method == http.MethodPost || method == http.MethodPut:
 		reqHeaders.Set("Content-Type", "application/json")
 
 		if opt != nil {
@@ -573,22 +616,22 @@ const (
 // populatePageValues parses the HTTP Link response headers and populates the
 // various pagination link values in the Response.
 func (r *Response) populatePageValues() {
-	if totalItems := r.Response.Header.Get(xTotal); totalItems != "" {
+	if totalItems := r.Header.Get(xTotal); totalItems != "" {
 		r.TotalItems, _ = strconv.Atoi(totalItems)
 	}
-	if totalPages := r.Response.Header.Get(xTotalPages); totalPages != "" {
+	if totalPages := r.Header.Get(xTotalPages); totalPages != "" {
 		r.TotalPages, _ = strconv.Atoi(totalPages)
 	}
-	if itemsPerPage := r.Response.Header.Get(xPerPage); itemsPerPage != "" {
+	if itemsPerPage := r.Header.Get(xPerPage); itemsPerPage != "" {
 		r.ItemsPerPage, _ = strconv.Atoi(itemsPerPage)
 	}
-	if currentPage := r.Response.Header.Get(xPage); currentPage != "" {
+	if currentPage := r.Header.Get(xPage); currentPage != "" {
 		r.CurrentPage, _ = strconv.Atoi(currentPage)
 	}
-	if nextPage := r.Response.Header.Get(xNextPage); nextPage != "" {
+	if nextPage := r.Header.Get(xNextPage); nextPage != "" {
 		r.NextPage, _ = strconv.Atoi(nextPage)
 	}
-	if previousPage := r.Response.Header.Get(xPrevPage); previousPage != "" {
+	if previousPage := r.Header.Get(xPrevPage); previousPage != "" {
 		r.PreviousPage, _ = strconv.Atoi(previousPage)
 	}
 }
@@ -601,7 +644,7 @@ func (r *Response) populatePageValues() {
 func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*Response, error) {
 	// If not yet configured, try to configure the rate limiter. Fail
 	// silently as the limiter will be disabled in case of an error.
-	c.configureLimiterOnce.Do(func() { c.configureLimiter() })
+	c.configureLimiterOnce.Do(func() { c.configureLimiter(req.Context()) })
 
 	// Wait will block until the limiter can obtain a new token.
 	err := c.limiter.Wait(req.Context())
@@ -613,7 +656,7 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*Response, error
 	// if we already have a token and if not first authenticate and get one.
 	var basicAuthToken string
 	switch c.authType {
-	case basicAuth:
+	case BasicAuth:
 		c.tokenLock.RLock()
 		basicAuthToken = c.token
 		c.tokenLock.RUnlock()
@@ -625,10 +668,18 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*Response, error
 			}
 		}
 		req.Header.Set("Authorization", "Bearer "+basicAuthToken)
-	case oAuthToken:
-		req.Header.Set("Authorization", "Bearer "+c.token)
-	case privateToken:
-		req.Header.Set("PRIVATE-TOKEN", c.token)
+	case JobToken:
+		if values := req.Header.Values("JOB-TOKEN"); len(values) == 0 {
+			req.Header.Set("JOB-TOKEN", c.token)
+		}
+	case OAuthToken:
+		if values := req.Header.Values("Authorization"); len(values) == 0 {
+			req.Header.Set("Authorization", "Bearer "+c.token)
+		}
+	case PrivateToken:
+		if values := req.Header.Values("PRIVATE-TOKEN"); len(values) == 0 {
+			req.Header.Set("PRIVATE-TOKEN", c.token)
+		}
 	}
 
 	resp, err := c.client.Do(req)
@@ -636,7 +687,7 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*Response, error
 		return nil, err
 	}
 
-	if resp.StatusCode == http.StatusUnauthorized && c.authType == basicAuth {
+	if resp.StatusCode == http.StatusUnauthorized && c.authType == BasicAuth {
 		resp.Body.Close()
 		// The token most likely expired, so we need to request a new one and try again.
 		if _, err := c.requestOAuthToken(req.Context(), basicAuthToken); err != nil {
@@ -707,7 +758,7 @@ func parseID(id interface{}) (string, error) {
 
 // Helper function to escape a project identifier.
 func pathEscape(s string) string {
-	return strings.Replace(url.PathEscape(s), ".", "%2E", -1)
+	return strings.ReplaceAll(url.PathEscape(s), ".", "%2E")
 }
 
 // An ErrorResponse reports one or more errors caused by an API request.

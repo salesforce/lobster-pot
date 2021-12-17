@@ -2,31 +2,18 @@ package rollbar
 
 import (
 	"sync"
+	"time"
 )
 
 // AsyncTransport is a concrete implementation of the Transport type which communicates with the
 // Rollbar API asynchronously using a buffered channel.
 type AsyncTransport struct {
-	// Rollbar access token used by this transport for communication with the Rollbar API.
-	Token string
-	// Endpoint to post items to.
-	Endpoint string
-	// Logger used to report errors when sending data to Rollbar, e.g.
-	// when the Rollbar API returns 409 Too Many Requests response.
-	// If not set, the client will use the standard log.Printf by default.
-	Logger ClientLogger
+	baseTransport
 	// Buffer is the size of the channel used for queueing asynchronous payloads for sending to
 	// Rollbar.
-	Buffer int
-	// RetryAttempts is how often to attempt to resend an item when a temporary network error occurs
-	// This defaults to DefaultRetryAttempts
-	// Set this value to 0 if you do not want retries to happen
-	RetryAttempts int
-	// PrintPayloadOnError is whether or not to output the payload to the set logger or to stderr
-	// if an error occurs during transport to the Rollbar API.
-	PrintPayloadOnError bool
-	bodyChannel         chan payload
-	waitGroup           sync.WaitGroup
+	Buffer      int
+	bodyChannel chan payload
+	waitGroup   sync.WaitGroup
 }
 
 type payload struct {
@@ -39,37 +26,50 @@ type payload struct {
 // buffer argument.
 func NewAsyncTransport(token string, endpoint string, buffer int) *AsyncTransport {
 	transport := &AsyncTransport{
-		Token:               token,
-		Endpoint:            endpoint,
-		Buffer:              buffer,
-		RetryAttempts:       DefaultRetryAttempts,
-		PrintPayloadOnError: true,
-		bodyChannel:         make(chan payload, buffer),
+		baseTransport: baseTransport{
+			Token:               token,
+			Endpoint:            endpoint,
+			RetryAttempts:       DefaultRetryAttempts,
+			PrintPayloadOnError: true,
+			ItemsPerMinute:      0,
+		},
+		bodyChannel: make(chan payload, buffer),
+		Buffer:      buffer,
 	}
 
 	go func() {
 		for p := range transport.bodyChannel {
-			err, canRetry := transport.post(p)
-			if err != nil {
-				if canRetry && p.retriesLeft > 0 {
-					p.retriesLeft -= 1
-					select {
-					case transport.bodyChannel <- p:
-					default:
-						// This can happen if the bodyChannel had an item added to it from another
-						// thread while we are processing such that the channel is now full. If we try
-						// to send the payload back to the channel without this select statement we
-						// could deadlock. Instead we consider this a retry failure.
+			elapsedTime := time.Now().Sub(transport.startTime).Seconds()
+			if elapsedTime < 0 || elapsedTime >= 60 {
+				transport.startTime = time.Now()
+				transport.perMinCounter = 0
+			}
+			if transport.shouldSend() {
+				canRetry, err := transport.post(p.body)
+				if err != nil {
+					if canRetry && p.retriesLeft > 0 {
+						p.retriesLeft -= 1
+						select {
+						case transport.bodyChannel <- p:
+						default:
+							// This can happen if the bodyChannel had an item added to it from another
+							// thread while we are processing such that the channel is now full. If we try
+							// to send the payload back to the channel without this select statement we
+							// could deadlock. Instead we consider this a retry failure.
+							if transport.PrintPayloadOnError {
+								writePayloadToStderr(transport.Logger, p.body)
+							}
+							transport.waitGroup.Done()
+						}
+					} else {
 						if transport.PrintPayloadOnError {
 							writePayloadToStderr(transport.Logger, p.body)
 						}
 						transport.waitGroup.Done()
 					}
 				} else {
-					if transport.PrintPayloadOnError {
-						writePayloadToStderr(transport.Logger, p.body)
-					}
 					transport.waitGroup.Done()
+					transport.perMinCounter++
 				}
 			} else {
 				transport.waitGroup.Done()
@@ -107,47 +107,7 @@ func (t *AsyncTransport) Wait() {
 
 // Close is an alias for Wait for the asynchronous transport
 func (t *AsyncTransport) Close() error {
+	close(t.bodyChannel)
 	t.Wait()
 	return nil
-}
-
-// SetToken updates the token to use for future API requests.
-// Any request that is currently in the queue will use this
-// updated token value. If you want to change the token without
-// affecting the items currently in the queue, use Wait first
-// to flush the queue.
-func (t *AsyncTransport) SetToken(token string) {
-	t.Token = token
-}
-
-// SetEndpoint updates the API endpoint to send items to.
-// Any request that is currently in the queue will use this
-// updated endpoint value. If you want to change the endpoint without
-// affecting the items currently in the queue, use Wait first
-// to flush the queue.
-func (t *AsyncTransport) SetEndpoint(endpoint string) {
-	t.Endpoint = endpoint
-}
-
-// SetLogger updates the logger that this transport uses for reporting errors that occur while
-// processing items.
-func (t *AsyncTransport) SetLogger(logger ClientLogger) {
-	t.Logger = logger
-}
-
-// SetRetryAttempts is how often to attempt to resend an item when a temporary network error occurs
-// This defaults to DefaultRetryAttempts
-// Set this value to 0 if you do not want retries to happen
-func (t *AsyncTransport) SetRetryAttempts(retryAttempts int) {
-	t.RetryAttempts = retryAttempts
-}
-
-// SetPrintPayloadOnError is whether or not to output the payload to stderr if an error occurs during
-// transport to the Rollbar API.
-func (t *AsyncTransport) SetPrintPayloadOnError(printPayloadOnError bool) {
-	t.PrintPayloadOnError = printPayloadOnError
-}
-
-func (t *AsyncTransport) post(p payload) (error, bool) {
-	return clientPost(t.Token, t.Endpoint, p.body, t.Logger)
 }

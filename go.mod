@@ -1,4 +1,4 @@
-module github.com/heroku/lobster-pot
+module github.com/salesforce/lobster-pot
 
 // +heroku goVersion go1.17
 go 1.17
@@ -65,7 +65,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.10.1 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/xanzy/go-gitlab v0.52.2 // indirect

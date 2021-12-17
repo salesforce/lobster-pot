@@ -1,16 +1,16 @@
 package rollbar
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
 	"runtime"
+	"time"
 )
 
 // A Client can be used to interact with Rollbar via the configured Transport.
@@ -24,7 +24,9 @@ type Client struct {
 	// Transport used to send data to the Rollbar API. By default an asynchronous
 	// implementation of the Transport interface is used.
 	Transport     Transport
+	Telemetry     *Telemetry
 	configuration configuration
+	diagnostic    diagnostic
 }
 
 // New returns the default implementation of a Client.
@@ -37,9 +39,12 @@ func New(token, environment, codeVersion, serverHost, serverRoot string) *Client
 func NewAsync(token, environment, codeVersion, serverHost, serverRoot string) *Client {
 	configuration := createConfiguration(token, environment, codeVersion, serverHost, serverRoot)
 	transport := NewTransport(token, configuration.endpoint)
+	diagnostic := createDiagnostic()
 	return &Client{
 		Transport:     transport,
+		Telemetry:     NewTelemetry(nil),
 		configuration: configuration,
+		diagnostic:    diagnostic,
 	}
 }
 
@@ -47,10 +52,30 @@ func NewAsync(token, environment, codeVersion, serverHost, serverRoot string) *C
 func NewSync(token, environment, codeVersion, serverHost, serverRoot string) *Client {
 	configuration := createConfiguration(token, environment, codeVersion, serverHost, serverRoot)
 	transport := NewSyncTransport(token, configuration.endpoint)
+	diagnostic := createDiagnostic()
 	return &Client{
 		Transport:     transport,
+		Telemetry:     NewTelemetry(nil),
 		configuration: configuration,
+		diagnostic:    diagnostic,
 	}
+}
+
+// CaptureTelemetryEvent sets the user-specified telemetry event
+func (c *Client) CaptureTelemetryEvent(eventType, eventlevel string, eventData map[string]interface{}) {
+	data := map[string]interface{}{}
+	data["body"] = eventData
+	data["type"] = eventType
+	data["level"] = eventlevel
+	data["source"] = "client"
+	data["timestamp_ms"] = time.Now().UnixNano() / int64(time.Millisecond)
+
+	c.Telemetry.Queue.Push(data)
+}
+
+// SetTelemetry sets the telemetry
+func (c *Client) SetTelemetry(options ...OptionFunc) {
+	c.Telemetry = NewTelemetry(c.configuration.scrubHeaders, options...)
 }
 
 // SetEnabled sets whether or not Rollbar is enabled.
@@ -111,17 +136,21 @@ func (c *Client) SetCustom(custom map[string]interface{}) {
 // any subsequent errors or messages. Only id is required to be
 // non-empty.
 func (c *Client) SetPerson(id, username, email string) {
-	c.configuration.person = Person{
+	person := Person{
 		Id:       id,
 		Username: username,
 		Email:    email,
 	}
+
+	c.configuration.person = person
 }
 
 // ClearPerson clears any previously set person information. See `SetPerson` for more
 // information.
 func (c *Client) ClearPerson() {
-	c.configuration.person = Person{}
+	person := Person{}
+
+	c.configuration.person = person
 }
 
 // SetFingerprint sets whether or not to use a custom client-side fingerprint. The default value is
@@ -139,6 +168,7 @@ func (c *Client) SetLogger(logger ClientLogger) {
 // The default value is regexp.MustCompile("Authorization")
 func (c *Client) SetScrubHeaders(headers *regexp.Regexp) {
 	c.configuration.scrubHeaders = headers
+	c.Telemetry.Network.ScrubHeaders = headers
 }
 
 // SetScrubFields sets the regular expression to match keys in the item payload for scrubbing.
@@ -160,6 +190,29 @@ func (c *Client) SetScrubFields(fields *regexp.Regexp) {
 // the payload being malformed from the perspective of the API.
 func (c *Client) SetTransform(transform func(map[string]interface{})) {
 	c.configuration.transform = transform
+}
+
+// SetUnwrapper sets the UnwrapperFunc used by the client. The unwrapper function
+// is used to extract wrapped errors from enhanced error types. This feature can be used to add
+// support for custom error types that do not yet implement the Unwrap method specified in Go 1.13.
+// See the documentation of UnwrapperFunc for more details.
+//
+// In order to preserve the default unwrapping behavior, callers of SetUnwrapper may wish to include
+// a call to DefaultUnwrapper in their custom unwrapper function. See the example on the SetUnwrapper function.
+func (c *Client) SetUnwrapper(unwrapper UnwrapperFunc) {
+	c.configuration.unwrapper = unwrapper
+}
+
+// SetStackTracer sets the StackTracerFunc used by the client. The stack tracer
+// function is used to extract the stack trace from enhanced error types. This feature can be used
+// to add support for custom error types that do not implement the Stacker interface.
+// See the documentation of StackTracerFunc for more details.
+//
+// In order to preserve the default stack tracing behavior, callers of SetStackTracer may wish
+// to include a call to DefaultStackTracer in their custom tracing function. See the example
+// on the SetStackTracer function.
+func (c *Client) SetStackTracer(stackTracer StackTracerFunc) {
+	c.configuration.stackTracer = stackTracer
 }
 
 // SetCheckIgnore sets the checkIgnore function which is called during the recovery
@@ -187,6 +240,12 @@ func (c *Client) SetRetryAttempts(retryAttempts int) {
 	c.Transport.SetRetryAttempts(retryAttempts)
 }
 
+// SetItemsPerMinute sets the max number of items to send in a given minute
+func (c *Client) SetItemsPerMinute(itemsPerMinute int) {
+	c.configuration.itemsPerMinute = itemsPerMinute
+	c.Transport.SetItemsPerMinute(itemsPerMinute)
+}
+
 // SetPrintPayloadOnError sets whether or not to output the payload to the set logger or to
 // stderr if an error occurs during transport to the Rollbar API. For example, if you hit
 // your rate limit and we run out of retry attempts, then if this is true we will output the
@@ -195,9 +254,19 @@ func (c *Client) SetPrintPayloadOnError(printPayloadOnError bool) {
 	c.Transport.SetPrintPayloadOnError(printPayloadOnError)
 }
 
+// SetHTTPClient sets custom http client. http.DefaultClient is used by default
+func (c *Client) SetHTTPClient(httpClient *http.Client) {
+	c.Transport.SetHTTPClient(httpClient)
+}
+
 // Token is the currently set Rollbar access token.
 func (c *Client) Token() string {
 	return c.configuration.token
+}
+
+// ItemsPerMinute is the currently set Rollbar items per minute
+func (c *Client) ItemsPerMinute() int {
+	return c.configuration.itemsPerMinute
 }
 
 // Environment is the currently set environment underwhich all errors and
@@ -325,7 +394,8 @@ func (c *Client) ErrorWithStackSkipWithExtrasAndContext(ctx context.Context, lev
 		return
 	}
 	body := c.buildBody(ctx, level, err.Error(), extras)
-	addErrorToBody(c.configuration, body, err, skip)
+	telemetry := c.Telemetry.GetQueueItems()
+	addErrorToBody(c.configuration, body, err, skip, telemetry)
 	c.push(body)
 }
 
@@ -353,7 +423,8 @@ func (c *Client) RequestErrorWithStackSkipWithExtrasAndContext(ctx context.Conte
 		return
 	}
 	body := c.buildBody(ctx, level, err.Error(), extras)
-	data := addErrorToBody(c.configuration, body, err, skip)
+	telemetry := c.Telemetry.GetQueueItems()
+	data := addErrorToBody(c.configuration, body, err, skip, telemetry)
 	data["request"] = c.requestDetails(r)
 	c.push(body)
 }
@@ -379,7 +450,10 @@ func (c *Client) MessageWithExtrasAndContext(ctx context.Context, level string, 
 	}
 	body := c.buildBody(ctx, level, msg, extras)
 	data := body["data"].(map[string]interface{})
-	data["body"] = messageBody(msg)
+	dataBody := messageBody(msg)
+	telemetry := c.Telemetry.GetQueueItems()
+	dataBody["telemetry"] = telemetry
+	data["body"] = dataBody
 	c.push(body)
 }
 
@@ -404,67 +478,127 @@ func (c *Client) RequestMessageWithExtrasAndContext(ctx context.Context, level s
 	}
 	body := c.buildBody(ctx, level, msg, extras)
 	data := body["data"].(map[string]interface{})
-	data["body"] = messageBody(msg)
+	dataBody := messageBody(msg)
+	telemetry := c.Telemetry.GetQueueItems()
+	dataBody["telemetry"] = telemetry
+	data["body"] = dataBody
 	data["request"] = c.requestDetails(r)
 	c.push(body)
 }
 
 // -- Panics
 
-// Wrap calls f and then recovers and reports a panic to Rollbar if it occurs.
-// If an error is captured it is subsequently returned
-func (c *Client) Wrap(f func()) (err interface{}) {
-	defer func() {
-		err = recover()
-		switch val := err.(type) {
-		case nil:
+// LogPanic accepts an error value returned by recover() and
+// handles logging to Rollbar with stack info.
+func (c *Client) LogPanic(err interface{}, wait bool) {
+	switch val := err.(type) {
+	case nil:
+		return
+	case error:
+		if c.configuration.checkIgnore(val.Error()) {
 			return
-		case error:
-			if c.configuration.checkIgnore(val.Error()) {
-				return
-			}
-			c.ErrorWithStackSkip(CRIT, val, 2)
-		default:
-			str := fmt.Sprint(val)
-			if c.configuration.checkIgnore(str) {
-				return
-			}
-			errValue := errors.New(str)
-			c.ErrorWithStackSkip(CRIT, errValue, 2)
 		}
-	}()
+		c.ErrorWithStackSkip(CRIT, val, 2)
+	default:
+		str := fmt.Sprint(val)
+		if c.configuration.checkIgnore(str) {
+			return
+		}
+		errValue := errors.New(str)
+		c.ErrorWithStackSkip(CRIT, errValue, 2)
+	}
+	if wait {
+		c.Wait()
+	}
+}
 
-	f()
+// WrapWithArgs calls f with the supplied args and reports a panic to Rollbar if it occurs.
+// If wait is true, this also waits before returning to ensure the message was reported.
+// If an error is captured it is subsequently returned.
+// WrapWithArgs is compatible with any return type for f, but does not return its return value(s).
+func (c *Client) WrapWithArgs(f interface{}, wait bool, inArgs ...interface{}) (err interface{}) {
+	if f == nil {
+		err = fmt.Errorf("function is nil")
+		return
+	}
+	funcType := reflect.TypeOf(f)
+	funcValue := reflect.ValueOf(f)
+
+	if funcType.Kind() != reflect.Func {
+		err = fmt.Errorf("function kind %s is not %s", funcType.Kind(), reflect.Func)
+		return
+	}
+
+	argValues := make([]reflect.Value, len(inArgs))
+	for i, v := range inArgs {
+		argValues[i] = reflect.ValueOf(v)
+	}
+
+	handler := func(args []reflect.Value) []reflect.Value {
+		defer func() {
+			err = recover()
+			c.LogPanic(err, wait)
+		}()
+
+		return funcValue.Call(args)
+	}
+
+	handler(argValues)
+
 	return
+}
+
+// Wrap calls f and then recovers and reports a panic to Rollbar if it occurs.
+// If an error is captured it is subsequently returned.
+func (c *Client) Wrap(f interface{}, args ...interface{}) (err interface{}) {
+	return c.WrapWithArgs(f, false, args...)
 }
 
 // WrapAndWait calls f, and recovers and reports a panic to Rollbar if it occurs.
 // This also waits before returning to ensure the message was reported
 // If an error is captured it is subsequently returned.
-func (c *Client) WrapAndWait(f func()) (err interface{}) {
-	defer func() {
-		err = recover()
-		switch val := err.(type) {
-		case nil:
-			return
-		case error:
-			if c.configuration.checkIgnore(val.Error()) {
-				return
-			}
-			c.ErrorWithStackSkip(CRIT, val, 2)
-		default:
-			str := fmt.Sprint(val)
-			if c.configuration.checkIgnore(str) {
-				return
-			}
-			errValue := errors.New(str)
-			c.ErrorWithStackSkip(CRIT, errValue, 2)
-		}
-		c.Wait()
-	}()
+func (c *Client) WrapAndWait(f interface{}, args ...interface{}) (err interface{}) {
+	return c.WrapWithArgs(f, true, args...)
+}
 
-	f()
-	return
+// LambdaWrapper calls handlerFunc with arguments, and recovers and reports a
+// panic to Rollbar if it occurs. This functions as a passthrough wrapper for
+// lambda.Start(). This also waits before returning to ensure all messages completed.
+func (c *Client) LambdaWrapper(handlerFunc interface{}) interface{} {
+	if handlerFunc == nil {
+		return lambdaErrorHandler(fmt.Errorf("handler is nil"))
+	}
+	handlerType := reflect.TypeOf(handlerFunc)
+	handlerValue := reflect.ValueOf(handlerFunc)
+
+	if handlerType.Kind() != reflect.Func {
+		return lambdaErrorHandler(fmt.Errorf("handler kind %s is not %s", handlerType.Kind(), reflect.Func))
+	}
+
+	handler := func(args []reflect.Value) []reflect.Value {
+		defer func() {
+			err := recover()
+			if err != nil {
+				c.LogPanic(err, true)
+				panic(err)
+			}
+		}()
+
+		ret := handlerValue.Call(args)
+		c.Wait()
+		return ret
+	}
+
+	fn := reflect.MakeFunc(handlerValue.Type(), handler).Interface()
+	return fn
+}
+
+type lambdaHandler func(context.Context, []byte) (interface{}, error)
+
+func lambdaErrorHandler(e error) lambdaHandler {
+	return func(ctx context.Context, payload []byte) (interface{}, error) {
+		return nil, e
+	}
 }
 
 // Wait will call the Wait method of the Transport. If using an asynchronous
@@ -483,7 +617,7 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) buildBody(ctx context.Context, level, title string, extras map[string]interface{}) map[string]interface{} {
-	return buildBody(ctx, c.configuration, level, title, extras)
+	return buildBody(ctx, c.configuration, c.diagnostic, level, title, extras)
 }
 
 func (c *Client) requestDetails(r *http.Request) map[string]interface{} {
@@ -529,22 +663,25 @@ const (
 )
 
 type configuration struct {
-	enabled      bool
-	token        string
-	environment  string
-	platform     string
-	codeVersion  string
-	serverHost   string
-	serverRoot   string
-	endpoint     string
-	custom       map[string]interface{}
-	fingerprint  bool
-	scrubHeaders *regexp.Regexp
-	scrubFields  *regexp.Regexp
-	checkIgnore  func(string) bool
-	transform    func(map[string]interface{})
-	person       Person
-	captureIp    captureIp
+	enabled        bool
+	token          string
+	environment    string
+	platform       string
+	codeVersion    string
+	serverHost     string
+	serverRoot     string
+	endpoint       string
+	custom         map[string]interface{}
+	fingerprint    bool
+	scrubHeaders   *regexp.Regexp
+	scrubFields    *regexp.Regexp
+	checkIgnore    func(string) bool
+	transform      func(map[string]interface{})
+	unwrapper      UnwrapperFunc
+	stackTracer    StackTracerFunc
+	person         Person
+	captureIp      captureIp
+	itemsPerMinute int
 }
 
 func createConfiguration(token, environment, codeVersion, serverHost, serverRoot string) configuration {
@@ -553,56 +690,35 @@ func createConfiguration(token, environment, codeVersion, serverHost, serverRoot
 		hostname, _ = os.Hostname()
 	}
 	return configuration{
-		enabled:      true,
-		token:        token,
-		environment:  environment,
-		platform:     runtime.GOOS,
-		endpoint:     "https://api.rollbar.com/api/1/item/",
-		scrubHeaders: regexp.MustCompile("Authorization"),
-		scrubFields:  regexp.MustCompile("password|secret|token"),
-		codeVersion:  codeVersion,
-		serverHost:   hostname,
-		serverRoot:   serverRoot,
-		fingerprint:  false,
-		checkIgnore:  func(_s string) bool { return false },
-		transform:    func(_d map[string]interface{}) {},
-		person:       Person{},
-		captureIp:    CaptureIpFull,
+		enabled:        true,
+		token:          token,
+		environment:    environment,
+		platform:       runtime.GOOS,
+		endpoint:       "https://api.rollbar.com/api/1/item/",
+		scrubHeaders:   regexp.MustCompile("Authorization"),
+		scrubFields:    regexp.MustCompile("password|secret|token"),
+		codeVersion:    codeVersion,
+		serverHost:     hostname,
+		serverRoot:     serverRoot,
+		fingerprint:    false,
+		checkIgnore:    func(_s string) bool { return false },
+		transform:      func(_d map[string]interface{}) {},
+		unwrapper:      DefaultUnwrapper,
+		stackTracer:    DefaultStackTracer,
+		person:         Person{},
+		captureIp:      CaptureIpFull,
+		itemsPerMinute: 0,
 	}
 }
 
-// clientPost returns an error which indicates the type of error that occured while attempting to
-// send the body input to the endpoint given, or nil if no error occurred. If error is not nil, the
-// boolean return parameter indicates whether the error is temporary or not. If this boolean return
-// value is true then the caller could call this function again with the same input and possibly
-// see a non-error response.
-func clientPost(token, endpoint string, body map[string]interface{}, logger ClientLogger) (error, bool) {
-	if len(token) == 0 {
-		rollbarError(logger, "empty token")
-		return nil, false
-	}
+type diagnostic struct {
+	languageVersion string
+}
 
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		rollbarError(logger, "failed to encode payload: %s", err.Error())
-		return err, false
+func createDiagnostic() diagnostic {
+	return diagnostic{
+		languageVersion: runtime.Version(),
 	}
-
-	resp, err := http.Post(endpoint, "application/json", bytes.NewReader(jsonBody))
-	if err != nil {
-		rollbarError(logger, "POST failed: %s", err.Error())
-		return err, isTemporary(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		rollbarError(logger, "received response: %s", resp.Status)
-		// http.StatusTooManyRequests is only defined in Go 1.6+ so we use 429 directly
-		isRateLimit := resp.StatusCode == 429
-		return ErrHTTPError(resp.StatusCode), isRateLimit
-	}
-
-	return nil, false
 }
 
 // isTemporary returns true if we should consider the error returned from http.Post to be temporary
