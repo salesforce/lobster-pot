@@ -8,7 +8,7 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/heroku/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/config"
 	log "github.com/sirupsen/logrus"
 
 	ghinstallation "github.com/bradleyfalzon/ghinstallation/v2"

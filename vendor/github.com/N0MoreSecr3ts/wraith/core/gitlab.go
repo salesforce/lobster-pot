@@ -3,18 +3,20 @@ package core
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/github"
 	"sync"
+
+	"github.com/google/go-github/github"
+
+	"io/ioutil"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/xanzy/go-gitlab"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	"io/ioutil"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // CloneRepository will create either an in memory clone of a given repository or clone to a temp dir.
@@ -194,7 +196,7 @@ func (c gitlabClient) getOrganization(login string) (*gitlab.Group, error) {
 	if err != nil {
 		return nil, err
 	}
-	org, _, err := c.apiClient.Groups.GetGroup(id)
+	org, _, err := c.apiClient.Groups.GetGroup(id, nil)
 	if err != nil {
 		return nil, err
 	}

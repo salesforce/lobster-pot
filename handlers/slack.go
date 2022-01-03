@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/heroku/lobster-pot/config"
-	"github.com/heroku/lobster-pot/db"
+	"github.com/salesforce/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/db"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 )

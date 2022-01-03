@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/heroku/lobster-pot/config"
-	"github.com/heroku/lobster-pot/db"
-	gh "github.com/heroku/lobster-pot/github"
-	"github.com/heroku/lobster-pot/scanner"
+	"github.com/salesforce/lobster-pot/config"
+	"github.com/salesforce/lobster-pot/db"
+	gh "github.com/salesforce/lobster-pot/github"
+	"github.com/salesforce/lobster-pot/scanner"
 	"github.com/slack-go/slack"
 
 	"github.com/google/go-github/v39/github"
