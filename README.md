@@ -1,5 +1,7 @@
 # Lobster Pot
 
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/salesforce/lobster-pot)
+
 ## Purpose
 
 The purpose of this software is to scan all code pushed into one or more Github Organisations, to search for secrets, and report to Slack any findings. It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and is used actively used in various Github organisations under the Salesforce Enterprise plan.
