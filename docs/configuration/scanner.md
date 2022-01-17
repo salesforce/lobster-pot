@@ -10,7 +10,7 @@ SCANNER_NAME=<chosen scanner>
 ```
 ### Binary scanner
 
-in the [docs/scanners](docs/scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.
+in the [docs/scanners](../scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.
 
 The relevant variables are:
 
