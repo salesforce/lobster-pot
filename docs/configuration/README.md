@@ -4,6 +4,7 @@ In order to configure the application, your must at least have:
 
 - a Github App installed in your organization, and setup as per [these instructions](github_apps.md).
 - a Slack App installed in your workspace, and setup as per [these instructions](slack.md).
+- a Scanner configured as per [these instructions](scanner.md).
 
 You can also configure the following global variables:
 
