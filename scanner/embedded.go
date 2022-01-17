@@ -19,7 +19,7 @@ func scanEmbeddedGo(tmpFolder string, s config.Scanner) (findings []Finding, err
 		findings, err = scanWraith(tmpFolder)
 
 	default:
-		err = fmt.Errorf("unknown scanner type: %s", s.Name)
+		err = fmt.Errorf("unknown Embedded scanner named: %s", s.Name)
 
 	}
 

@@ -52,8 +52,9 @@ settings:
 - Click **Create**
 - Request to add it to your workspace
 
-A Slack admin for the workspace will need to authorize the install. Once installed, you will be able to copy the OAuth token (found on the left panel under Features / Oauth & parmissions) and add this to the app configuration app as the `SLACK_TOKEN_*` config var.
-You'll also need the Channel ID to which this app should write to.
+A Slack admin for the workspace will need to authorize the install.  
+Once installed, you will be able to copy the OAuth token (found on the left panel under Features / Oauth & permissions) and add this to the app configuration app as the `SLACK_TOKEN_*` config var.  
+You'll also need the Channel ID to which this app should post to.
 
 - create a new channel
 - right click on the channel and "copy link"
