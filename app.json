@@ -1,5 +1,5 @@
 {
-  "name": "Lobster Pot",
+  "name": "lobster Pot",
   "description": "Scans every git push to an organisation to find unwanted secrets",
   "keywords": [
     "gitsecops",
@@ -44,9 +44,15 @@
       "description": "The type of scanner to use, either 'binary' or 'golang'",
       "default": "golang"
     },
-    "SCANNER_NAME": {
-      "description": "The name of the scanner to use",
-      "default": "wraith"
+    "SCANNER_BINARY": {
+      "description": "If using the 'binary' type, path to the scanning binary ",
+      "default": "semgrep",
+      "required": false
+    },
+    "SCANNER_ARGUMENTS": {
+      "description": "If using the 'binary' type, arguments to pass to the scanning binary",
+      "default": "--config=/app/semgrep-rules/generic/secrets/security/;--exclude=vendor/;--exclude=semgrep-rules/;--exclude=bin/;--json;%s",
+      "required": false
     }
   },
   "addons": [
