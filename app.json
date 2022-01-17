@@ -57,6 +57,20 @@
       "description": "If using the 'binary' type, arguments to pass to the scanning binary",
       "default": "--config=/app/semgrep-rules/generic/secrets/security/;--exclude=vendor/;--exclude=semgrep-rules/;--exclude=bin/;--json;%s",
       "required": false
+    },
+    "LOG_LEVEL": {
+      "description": "The log level to use. Can be one of 'debug', 'info', 'warn', 'error', or 'fatal'",
+      "default": "info",
+      "required": false
+    },
+    "ENVIRON": {
+      "description": "The environment to use. Useful for error reporting",
+      "default": "prod",
+      "required": false
+    },
+    "ROLLBAR_TOKEN": {
+      "description": "The Rollbar access token",
+      "required": false
     }
   },
   "addons": [
