@@ -44,6 +44,10 @@
       "description": "The type of scanner to use, either 'binary' or 'golang'",
       "default": "golang"
     },
+    "SCANNER_NAME": {
+      "description": "The name of the scanner to use. Out of the box support for 'semgrep' and 'wraith'",
+      "default": "wraith"
+    },
     "SCANNER_BINARY": {
       "description": "If using the 'binary' type, path to the scanning binary ",
       "default": "semgrep",
