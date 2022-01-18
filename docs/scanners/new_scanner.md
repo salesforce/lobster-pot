@@ -13,14 +13,14 @@ In case of using a Golang library, it needs to be added as an import, and vendor
 
 The [scanner/wraith.go](../../scanner/wraith.go) file can be taken as an example.
 
-### External binary
+## External binary
 
 To be able to add an external binary, multiple solutions are possible:
 
 - Add a `bin/go-pre-compile` file containing a bash script that downloads the binary when deploying the application.
 - Leverage the various buildpacks available to install the binary (see [Semgrep](semgrep.md) for an example).
 
-## Parser
+### Parser
 
 1. Add a new parser in the `scanner` package. The function signature is `func Parse<NewParser>Findings(data []byte) (Findings, error)`
 1. Update the `parseFindingsFromBinaryScanner` function in the [scanner/binary.go](../../scanner/binary.go) file to include the new parser.
