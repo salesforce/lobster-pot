@@ -1,10 +1,16 @@
 # GitHub app Setup
 
-A github app must be installed in each org that is going to be monitored.
+## Creation 
 
-In order to be able to run in multiple github orgs, the following variables must be suffixed by a numerical ID.
+A github app must be installed in each org that is going to be monitored.  
 
-## Environment vars
+To create one, see [this doc](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app).  
+No `Callback URL` is needed, as we're only going to push events from Github.
+
+
+## Configuration
+
+In order to be able to run in multiple github orgs, the following variables must be suffixed by a numerical ID:
 
 Each Github app needs to have ENV variables set :
 
