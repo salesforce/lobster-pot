@@ -6,6 +6,10 @@
 
 ![demo](docs/medias/demo.gif)
 
+## Naming
+
+Naming is hard. We needed to have an image of something that is waiting for secrets to be trapped, and discovered, and as a result, "Lobster Pot" came to mind.
+
 ## Purpose
 
 The purpose of this software is to scan all code pushed into one or more Github Organisations, to search for secrets, and report to Slack any findings.
