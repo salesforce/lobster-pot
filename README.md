@@ -1,5 +1,6 @@
 # Lobster Pot
 
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/salesforce/lobster-pot)
 
 ## Demo
 
