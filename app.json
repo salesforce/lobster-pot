@@ -1,0 +1,86 @@
+{
+  "name": "lobster Pot",
+  "description": "Scans every git push to an organisation to find unwanted secrets",
+  "keywords": [
+    "gitsecops",
+    "github",
+    "security",
+    "secrets",
+    "scanner"
+  ],
+  "repository": "https://github.com/salesforce/lobster-pot",
+  "env": {
+    "GITHUB_APPID_1": {
+      "description": "The GitHub App ID"
+    },
+    "GITHUB_INSTALLID_1": {
+      "description": "The GitHub App Installation ID"
+    },
+    "GITHUB_PRIVATE_KEY_1": {
+      "description": "The private key associated with the GitHub App"
+    },
+    "GITHUB_ORG_1": {
+      "description": "The name of the GitHub organisation to scan"
+    },
+    "GITHUB_SECRET_1": {
+      "description": "The GitHub App secret"
+    },
+    "GITHUB_SLACK_APPID_1": {
+      "description": "The Slack App ID corresponding to the GitHub App #1"
+    },
+    "SLACK_APPID_1": {
+      "description": "The Slack App ID"
+    },
+    "SLACK_CHANNEL_1": {
+      "description": "The Slack channel to post to"
+    },
+    "SLACK_SIGNING_SECRET_1": {
+      "description": "The Slack signing secret for this app"
+    },
+    "SLACK_TOKEN_1": {
+      "description": "The Slack App token"
+    },
+    "SCANNER_TYPE": {
+      "description": "The type of scanner to use, either 'binary' or 'golang'",
+      "default": "golang"
+    },
+    "SCANNER_NAME": {
+      "description": "The name of the scanner to use. Out of the box support for 'semgrep' and 'wraith'",
+      "default": "wraith"
+    },
+    "SCANNER_BINARY": {
+      "description": "If using the 'binary' type, path to the scanning binary ",
+      "default": "semgrep",
+      "required": false
+    },
+    "SCANNER_ARGUMENTS": {
+      "description": "If using the 'binary' type, arguments to pass to the scanning binary",
+      "default": "--config=/app/semgrep-rules/generic/secrets/security/;--exclude=vendor/;--exclude=semgrep-rules/;--exclude=bin/;--json;%s",
+      "required": false
+    },
+    "LOG_LEVEL": {
+      "description": "The log level to use. Can be one of 'debug', 'info', 'warn', 'error', or 'fatal'",
+      "default": "info",
+      "required": false
+    },
+    "ENVIRON": {
+      "description": "The environment to use. Useful for error reporting",
+      "default": "prod",
+      "required": false
+    },
+    "ROLLBAR_TOKEN": {
+      "description": "The Rollbar access token",
+      "required": false
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/go"
+    }
+  ]
+}
