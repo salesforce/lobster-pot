@@ -8,6 +8,7 @@ In order to use a golang vendored scanner, you need to use the following configu
 SCANNER_TYPE=golang
 SCANNER_NAME=<chosen scanner>
 ```
+
 ### Binary scanner
 
 in the [docs/scanners](../scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.

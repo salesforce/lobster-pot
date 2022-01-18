@@ -1,12 +1,11 @@
 # GitHub app Setup
 
-## Creation 
+## Creation
 
 A github app must be installed in each org that is going to be monitored.  
 
 To create one, see [this doc](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app).  
 No `Callback URL` is needed, as we're only going to push events from Github.
-
 
 ## Configuration
 

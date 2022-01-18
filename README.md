@@ -10,7 +10,7 @@
 
 The purpose of this software is to scan all code pushed into one or more Github Organisations, to search for secrets, and report to Slack any findings.
 
-It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been maintained and updated by the Platform Security Team.
+It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been updated and maintained by the Platform Security Team.
 
 It is actively used in various Github organisations under the Salesforce Enterprise plan.
 
