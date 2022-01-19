@@ -23,7 +23,8 @@ Each Github app needs to have ENV variables set :
 All those variables need to be suffixed by a numerical ID, to be able to have multiple orgs :  
 `GITHUB_ORG_1`, `GITHUB_APPID_1`, ... 
 
-The only hard requirement is that numerical IDs are only digits. They don't necessarily have to be in sequence. One can have `GITHUB_ORG_1`, `GITHUB_ORG_1337`, `GITHUB_ORG_42`... 
+The only hard requirement is that numerical IDs are only digits. They don't necessarily have to be in sequence.  
+One can have `GITHUB_ORG_1/GITHUB_APPID_1/GITHUB_INSTALLID_1/...`, `GITHUB_ORG_1337/GITHUB_APPID_1337/GITHUB_INSTALLID_1337/...`, `GITHUB_ORG_42/GITHUB_APPID_42/GITHUB_INSTALLID_42/...` 
 
 ## App installation
 
