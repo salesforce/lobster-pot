@@ -9,6 +9,7 @@ The purpose of this software is to scan all code pushed into one or more Github 
 ## Demo
 
 ![demo](docs/medias/demo.gif)
+![slack](docs/medias/slack_posts.png)
 
 ## Origins
 
