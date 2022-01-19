@@ -4,7 +4,7 @@
 
 ## Purpose
 
-The purpose of this software is to scan all code pushed into one or more Github Organisations, to search for secrets, and report any findings into a Slack channel.
+The purpose of this software is to be a framework for scanning all code pushed into one or more Github Organisations and report any findings into a Slack channel. The common application is to search for secrets.
 
 ## Demo
 
