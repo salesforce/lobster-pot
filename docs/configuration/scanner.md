@@ -9,7 +9,14 @@ SCANNER_TYPE=golang
 SCANNER_NAME=<chosen scanner>
 ```
 
-### Binary scanner
+Out of the box, the `wraith` scanner can be used by setting: 
+
+```bash
+SCANNER_TYPE=golang
+SCANNER_NAME=wraith
+```
+
+## Binary scanner
 
 in the [docs/scanners](../scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.
 
