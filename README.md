@@ -13,7 +13,7 @@ The purpose of this software is to scan all code pushed into one or more Github 
 
 ## Origins
 
-It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been modularized and extended by the Platform Security Team.
+It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been modularized and extended by the PaaS Security Team.
 
 It is actively used in various Github organisations under the Salesforce Enterprise plan.
 
