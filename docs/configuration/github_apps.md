@@ -5,11 +5,11 @@
 A github app must be installed in each org that is going to be monitored.  
 
 To create one, see [this doc](https://docs.github.com/en/developers/apps/building-github-apps/creating-a-github-app).  
-No `Callback URL` is needed, as we're only going to push events from Github.
+No `Callback URL` is needed, as we're only going to receive push events from Github.
 
 ## Configuration
 
-In order to be able to run in multiple github orgs, the following variables must be suffixed by a numerical ID:
+In order to be able to run in multiple github orgs, the following variables must be suffixed by a numerical ID :
 
 Each Github app needs to have ENV variables set :
 
@@ -20,9 +20,10 @@ Each Github app needs to have ENV variables set :
 * `GITHUB_SECRET` - secret required from the GitHub App, to validate incoming payloads (can be ommited in `dev` enviromnent)
 * `GITHUB_SLACK_APPID` - The ID of the Slack App to post messages to.
 
-All those variables need to be suffixed by a numerical ID, to be able to have multiple orgs :
+All those variables need to be suffixed by a numerical ID, to be able to have multiple orgs :  
+`GITHUB_ORG_1`, `GITHUB_APPID_1`, ... 
 
-`GITHUB_ORG_1`, `GITHUB_APPID_1`, ...
+The only hard requirement is that numerical IDs are only digits. They don't necessarily have to be in sequence. One can have `GITHUB_ORG_1`, `GITHUB_ORG_1337`, `GITHUB_ORG_42`... 
 
 ## App installation
 
