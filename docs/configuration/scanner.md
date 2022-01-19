@@ -24,4 +24,4 @@ SCANNER_ARGUMENTS="arguments;split;by;semi-colon;with;%s;as;placeholder;for;path
 
 The binary needs to be locally available in the app's slug. If deploying to Heroku, or similar environment, it is possible to run a build script to download binaries using the `bin/go-pre-compile` script
 
-To configure a new scanner, see the [docs/scanners](../scanners) directory.
+To configure a new scanner, see the [new_scanner.md](../scanners/new_scanner.md) document.
