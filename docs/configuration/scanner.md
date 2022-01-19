@@ -1,5 +1,9 @@
 # Scanner configuration
 
+in the [docs/scanners](../scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.
+
+To configure a new scanner, see the [new_scanner.md](../scanners/new_scanner.md) document.
+
 ## Golang vendored scanner
 
 In order to use a golang vendored scanner, you need to use the following configuration variables:
@@ -9,9 +13,9 @@ SCANNER_TYPE=golang
 SCANNER_NAME=<chosen scanner>
 ```
 
-### Binary scanner
+Out of the box, the `wraith` scanner can be used. See [wraith.md](../scanners/wraith.md)
 
-in the [docs/scanners](docs/scanners) directory you can find a list of available scanners, with their description and suggested configuration variables.
+## Binary scanner
 
 The relevant variables are:
 
@@ -23,3 +27,4 @@ SCANNER_ARGUMENTS="arguments;split;by;semi-colon;with;%s;as;placeholder;for;path
 ```
 
 The binary needs to be locally available in the app's slug. If deploying to Heroku, or similar environment, it is possible to run a build script to download binaries using the `bin/go-pre-compile` script
+

@@ -15,11 +15,12 @@
 git clone https://github.com/returntocorp/semgrep-rules.git semgrep-rules
 ```
 
-We can't add it as a git submodule for the project becauses it messes up with the `go` modules
+We can't add it as a git submodule for the project becauses it messes up with the `go` modules.
 
 ## Configure environment
 
 ```bash
+SCANNER_TYPE=binary
 SCANNER_BINARY=semgrep
 SCANNER_ARGUMENTS="--config=/app/semgrep-rules/generic/secrets/security/;--exclude=vendor/;--exclude=semgrep-rules/;--exclude=bin/;--json;%s"
 SCANNER_NAME=semgrep

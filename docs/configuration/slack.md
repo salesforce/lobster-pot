@@ -8,8 +8,11 @@
 - `SLACK_SIGNING_SECRET`- Slack signing secret to validate incoming requests, found under "App Credentials"
 
 As for the Github apps, all those variables need to be suffixed by a numerical ID, to be able to have multiple orgs :
-
 `SLACK_APPID_1`, `SLACK_CHANNEL_1`, ...
+
+The only hard requirement is that numerical IDs are only digits. They don't necessarily have to be in sequence.  
+One can have `SLACK_APPID_1/SLACK_CHANNEL_1/SLACK_TOKEN_1/...`, `SLACK_APPID_1337/SLACK_CHANNEL_1337/SLACK_TOKEN_1337/...`, `SLACK_APPID_42/SLACK_CHANNEL_42/SLACK_TOKEN_42/...` 
+
 
 ## App installation
 
@@ -52,8 +55,9 @@ settings:
 - Click **Create**
 - Request to add it to your workspace
 
-A Slack admin for the workspace will need to authorize the install. Once installed, you will be able to copy the OAuth token (found on the left panel under Features / Oauth & parmissions) and add this to the app configuration app as the `SLACK_TOKEN_*` config var.
-You'll also need the Channel ID to which this app should write to.
+A Slack admin for the workspace will need to authorize the install.  
+Once installed, you will be able to copy the OAuth token (found on the left panel under Features / Oauth & permissions) and add this to the app configuration app as the `SLACK_TOKEN_*` config var.  
+You'll also need the Channel ID to which this app should post to.
 
 - create a new channel
 - right click on the channel and "copy link"
