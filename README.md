@@ -4,15 +4,16 @@
 
 ## Purpose
 
-The purpose of this software is to scan all code pushed into one or more Github Organisations, to search for secrets, and report any findings into a Slack channel.
+The purpose of this software is to be a framework for scanning all code pushed into one or more Github Organisations and report any findings into a Slack channel. The common application is to search for secrets.
 
 ## Demo
 
 ![demo](docs/medias/demo.gif)
+![slack](docs/medias/slack_posts.png)
 
 ## Origins
 
-It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been modularized and extended by the Platform Security Team.
+It has been originally created by [Etienne Stalmans](https://github.com/staaldraad) and has been modularized and extended by the PaaS Security Team.
 
 It is actively used in various Github organisations under the Salesforce Enterprise plan.
 
