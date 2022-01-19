@@ -15,7 +15,7 @@
 git clone https://github.com/returntocorp/semgrep-rules.git semgrep-rules
 ```
 
-We can't add it as a git submodule for the project becauses it messes up with the `go` modules
+We can't add it as a git submodule for the project becauses it messes up with the `go` modules.
 
 ## Configure environment
 
